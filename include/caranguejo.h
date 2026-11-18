@@ -10,7 +10,7 @@ public:
     }
 
     Acao decidirAcao() const override {
-        if (hp < hpMax * 0.3) return Acao::FUGIR;  // sem ; extra
+        if (hp < hpMax * 0.3) return Acao::FUGIR;  
         return Acao::ATACAR;
     }
 };

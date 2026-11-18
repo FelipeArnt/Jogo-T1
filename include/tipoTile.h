@@ -1,0 +1,17 @@
+#ifndef TIPOTILE_H
+#define TIPOTILE_H
+
+enum class TipoTile {
+  PENHASCO,
+  AREIA,
+  COQUEIRO,
+  ARVORE,
+  BARCO,
+  FOGUEIRA,
+  AGUA_DOCE,
+  AGUA_MAR,
+  SPAWN_INIMIGO,
+  DESCONHECIDO
+};
+
+#endif

@@ -1,0 +1,218 @@
+@startuml DiagramaJogoIlha
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam class {
+    BackgroundColor White
+    AbstractBackgroundColor #E8F0FE
+}
+
+' ============ ENTIDADES ============
+abstract class Personagem {
+  # hp : unsigned int
+  # hpMax : unsigned int
+  # xp : unsigned int
+  # nome : string
+  # ataque : unsigned int
+  # defesa : unsigned int
+  # x : int
+  # y : int
+  + {abstract} agir(alvo : Personagem&) : void
+  + receberDano(dano : unsigned int) : void
+  + vivo() : bool
+  + getVida() : unsigned int
+  + getMaxVida() : unsigned int
+  + getAtaque() : unsigned int
+  + getNome() : string
+  + getX() : int
+  + getY() : int
+  + setAtaque(a : unsigned int) : void
+  + setPosicao(x : int, y : int) : void
+}
+
+class Player {
+  - fome : unsigned int
+  - sede : unsigned int
+  - energia : unsigned int
+  - inventario : Inventario
+  + agir(alvo : Personagem&) : void
+  + passarTempo() : void
+  + podeAgir() : bool
+  + reduzirFome(qtd : unsigned int) : void
+  + reduzirSede(qtd : unsigned int) : void
+  + getInventario() : Inventario&
+}
+
+abstract class Inimigo {
+  + {abstract} decidirAcao() : Acao
+  + {abstract} soltarMochila() : unique_ptr<Item>
+  + agir(alvo : Personagem&) : void
+}
+
+class Caranguejo
+class Javali
+class Pirata
+
+Personagem <|-- Player
+Personagem <|-- Inimigo
+Inimigo <|-- Caranguejo
+Inimigo <|-- Javali
+Inimigo <|-- Pirata
+
+' ============ ITENS ============
+abstract class Item {
+  # nome : string
+  # peso : int
+  + {abstract} usar(p : Player&) : void
+  + {abstract} descricao() : string
+  + {abstract} consumivel() : bool
+}
+
+class Coco
+class Peixe
+class Carne
+class Faca
+class Lanca
+class Madeira
+class Corda
+
+Item <|-- Coco
+Item <|-- Peixe
+Item <|-- Carne
+Item <|-- Faca
+Item <|-- Lanca
+Item <|-- Madeira
+Item <|-- Corda
+
+class Inventario {
+  - itens : vector<unique_ptr<Item>>
+  - capacidade : int
+  + adicionar(item : unique_ptr<Item>) : void
+  + remover(index : int) : unique_ptr<Item>
+  + usar(index : int, p : Player&) : void
+  + listar() : void
+  + cheio() : bool
+}
+
+class ItemFactory <<factory>> {
+  + {static} criar(tipo : string) : unique_ptr<Item>
+}
+
+class InimigoFactory <<factory>> {
+  + {static} criar(tipo : string, x : int, y : int) : unique_ptr<Inimigo>
+}
+
+Player *-- Inventario : possui >
+Inventario o-- Item : contém >
+ItemFactory ..> Item : cria >
+InimigoFactory ..> Inimigo : cria >
+
+' ============ MAPA ============
+class Mapa {
+  - tiles : vector<vector<Tile>>
+  - largura, altura : int
+  - spawnX, spawnY : int
+  + carregarArquivo(caminho : string) : void
+  + getTile(x : int, y : int) : Tile&
+  + bloqueado(x : int, y : int) : bool
+}
+
+class Tile {
+  - tipo : TipoTile
+  - obstaculo : bool
+  - interagivel : bool
+  + bloqueia() : bool
+  + interagir(p : Player&) : void
+  + simbolo() : char
+  + getTipo() : TipoTile
+  + isInteragivel() : bool
+}
+
+class MapaLoader <<utility>> {
+  + {static} carregar(caminho : string) : vector<vector<Tile>>
+}
+
+enum TipoTile {
+  PENHASCO
+  AREIA
+  ARVORE
+  BARCO
+  AGUA_DOCE
+  FOGUEIRA
+  SPAWN_INIMIGO
+}
+
+enum Acao {
+  ATACAR
+  DEFENDER
+  FUGIR
+}
+
+Mapa *-- Tile : contém >
+Tile --> TipoTile
+Mapa ..> MapaLoader : usa >
+Inimigo ..> Acao : usa >
+Inimigo ..> Item : dropa >
+
+' ============ ESTADOS (State Pattern) ============
+abstract class EstadoJogo {
+  + {abstract} atualizar(jogo : Jogo&) : void
+  + {abstract} renderizar(jogo : Jogo&) : void
+}
+
+class EstadoExploracao {
+  - tentarMover(jogo : Jogo&, nx : int, ny : int) : void
+  - interagir(jogo : Jogo&) : void
+}
+
+class EstadoCombate {
+  - inimigo : Inimigo*
+  - terminou : bool
+  - defendendo : bool
+  - lerAcaoPlayer() : Acao
+  - executarAcaoPlayer(jogo : Jogo&, a : Acao) : void
+  - executarAcaoInimigo(jogo : Jogo&, a : Acao) : void
+  - finalizar(jogo : Jogo&) : void
+}
+
+class EstadoGameOver {
+  - motivo : string
+}
+
+EstadoJogo <|-- EstadoExploracao
+EstadoJogo <|-- EstadoCombate
+EstadoJogo <|-- EstadoGameOver
+EstadoCombate --> Inimigo : referencia >
+
+' ============ JOGO ============
+class Jogo {
+  - player : Player
+  - mapa : Mapa
+  - inimigos : vector<unique_ptr<Inimigo>>
+  - estado : unique_ptr<EstadoJogo>
+  - rodando : bool
+  + iniciar() : void
+  + loop() : void
+  + encerrar() : void
+  + trocarEstado(novo : unique_ptr<EstadoJogo>) : void
+  + getPlayer() : Player&
+  + getMapa() : Mapa&
+  + inimigoEm(x : int, y : int) : Inimigo*
+  + limparInimigos() : void
+}
+
+class Terminal <<utility>> {
+  + {static} iniciar() : void
+  + {static} finalizar() : void
+  + {static} lerTecla() : char
+  + {static} limparTela() : void
+}
+
+Jogo *-- Player : possui >
+Jogo *-- Mapa : possui >
+Jogo o-- Inimigo : gerencia >
+Jogo o-- EstadoJogo : estado atual >
+Jogo ..> Terminal : usa >
+
+@enduml
